@@ -1,5 +1,11 @@
 (in-package #:xiaocc)
 
+(serapeum:defconst +token-power+
+  '((:plus . 10)
+    (:minus . 10)
+    (:star . 20)
+    (:slash . 20)))
+
 (defclass ast-node () ())
 
 (defclass literal-node (ast-node)
@@ -56,10 +62,7 @@
   "Returns the binding power of a token, or 0 if not an operator"
   (if (null token)
       0
-      (case (kind token)
-	((:plus :minus) 10)
-	((:star :slash) 20)
-	(otherwise 0))))
+      (or (cdr (assoc (kind token) +token-power+)) 0)))
 
 (defun parse-binexpr! (reader &optional (min-bp 0))
   "Pratt parser. Parses an expression whose operators all bind tighter than MIN-BP."
