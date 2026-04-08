@@ -39,14 +39,6 @@
 (defmethod print-object ((node ast-node) stream)
   (pretty-print node stream))
 
-(defun binary-op-from-token-kind (kind)
-  "Map a token kind to a symbolic operator name for binary-op-node."
-  (ecase kind
-    (:plus     :add)
-    (:minus    :subtract)
-    (:star     :multiply)
-    (:slash    :divide)))
-
 (defun parse-primary! (token-reader)
   "Parse a single integer literal; signal an error on anything else."
   (let ((tok (next-token! token-reader)))
@@ -76,7 +68,7 @@
         (let ((right (parse-binexpr! reader bp))) ; recurse with current bp as new floor
           (setf left (make-instance 'binary-op-node
                                     :left  left
-                                    :op    (binary-op-from-token-kind (kind op-tok))
+                                    :op    (kind op-tok)
                                     :right right)))))
     left))
 
