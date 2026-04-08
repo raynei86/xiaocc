@@ -52,20 +52,30 @@
       (t
        (error "expected integer literal, got ~A" (kind tok))))))
 
-(defun parse-binexpr! (reader)
-  "Parse a left-associative chain of binary expressions.
-   Grammar: expr := primary (op primary)*"
-  (iter
-    (with left = (parse-primary! reader))
-    (for op-tok = (peek-token! reader))
-    (while (and op-tok (arithmetic-operatorp (token op-tok))))
-    (next-token! reader)                  ; consume the operator
-    (let ((right (parse-primary! reader)))
-      (setf left (make-instance 'binary-op-node
-                                :left  left
-                                :op    (binary-op-from-token-kind (kind op-tok))
-                                :right right)))
-    (finally (return left))))
+(defun token-binding-power (token)
+  "Returns the binding power of a token, or 0 if not an operator"
+  (if (null token)
+      0
+      (case (kind token)
+	((:plus :minus) 10)
+	((:star :slash) 20)
+	(otherwise 0))))
+
+(defun parse-binexpr! (reader &optional (min-bp 0))
+  "Pratt parser. Parses an expression whose operators all bind tighter than MIN-BP."
+  (let ((left (parse-primary! reader)))
+    (loop
+      (let* ((op-tok (peek-token! reader))
+             (bp     (token-binding-power op-tok)))
+        (when (<= bp min-bp)
+          (return left))
+        (next-token! reader)                      ; consume operator
+        (let ((right (parse-binexpr! reader bp))) ; recurse with current bp as new floor
+          (setf left (make-instance 'binary-op-node
+                                    :left  left
+                                    :op    (binary-op-from-token-kind (kind op-tok))
+                                    :right right)))))
+    left))
 
 (defun parse-string (input)
   "Convenience: parse an expression from a plain string."
